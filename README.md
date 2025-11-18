@@ -32,7 +32,3 @@ What is implemented
 - RK4 integrator for the ray equations using the formulation d/ds(n dr/ds) = grad n (implemented as first-order system in (r, p)).
 - Adaptive ray integration with automatic step control plus optional stopping conditions (domain bounds and arbitrary user-specified surfaces).
 - `run_demo.py` to visualize rays through a Gaussian bump in `n`.
-
-Goals
-------------------
-- Add surfaces / interfaces with Snell's law.

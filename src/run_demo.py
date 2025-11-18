@@ -9,8 +9,8 @@ def main():
     # Create a field: background 1.0 with a Gaussian bump at origin
     field = RefractiveIndexField(
         n0=1.0,
-        gaussians=[{"amplitude": 10.0, "center": np.array([0.0, 0.0, 0.0]), "sigma": 0.6}],
-        linear_grad=np.array([0.0, 0.0, 0.0]),
+        gaussians=[{"amplitude": -20.0, "center": np.array([1.0, 0.0, 0.0]), "sigma": 2.6}],
+        linear_grad=np.array([0.0, 10.0, 0.0]),
     )
 
     fig = plt.figure(figsize=(10, 7))
@@ -32,9 +32,9 @@ def main():
         sample_points[:, 1],
         sample_points[:, 2],
         c=n_values,
-        cmap='magma',
+        cmap='plasma',
         alpha=0.55,
-        s=12,
+        s=15,
         linewidths=0,
     )
     cbar = fig.colorbar(scatter, ax=ax, shrink=0.7, pad=0.1)
@@ -52,15 +52,15 @@ def main():
     for o in origins:
         traj = integrate_ray(
             o,
-            np.array([1.0, 1.0, 1.0]),
+            np.array([1.0, 1.0, 0.0]),
             field,
             ds=0.02,
             steps=600,
             adaptive=True,
-            domain_bounds=bounds,
+            domain_bounds=None,
             surfaces=[sensor_plane],
         )
-        ax.plot(traj[:, 0], traj[:, 1], traj[:, 2], linewidth=0.9, color='lightgray')
+        ax.plot(traj[:, 0], traj[:, 1], traj[:, 2], linewidth=0.9, color='snow')
 
     ax.set_xlim(bounds[0])
     ax.set_ylim(bounds[1])
