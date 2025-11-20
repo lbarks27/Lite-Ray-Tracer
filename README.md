@@ -1,6 +1,6 @@
 # Lite Ray Tracer (continuous refractive index)
 
-This small project integrates rays through a continuously-varying refractive-index field in 3D and visualizes them with matplotlib's 3D tools. This is an exercise to help learn and prepare for my mach cutoff simulation project in which I will be propagating shockwave geometry via raytracing. 
+This small project integrates rays through a continuously-varying refractive-index field in 3D and visualizes them with matplotlib's 3D tools. This is an exercise to help learn and prepare for my Mach cutoff simulation project in which I will be propagating shockwave geometry via raytracing. 
 
 ![](/images/Figure_6.png)
 
