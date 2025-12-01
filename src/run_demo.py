@@ -52,12 +52,12 @@ def main():
     for o in origins:
         traj = integrate_ray(
             o,
-            np.array([1.0, 1.0, 0.0]),
+            np.array([0.0, 1.0, 0.0]),
             field,
             ds=0.02,
             steps=600,
             adaptive=True,
-            domain_bounds=None,
+            domain_bounds=bounds,
             surfaces=[sensor_plane],
         )
         ax.plot(traj[:, 0], traj[:, 1], traj[:, 2], linewidth=0.9, color='snow')
