@@ -13,6 +13,7 @@ def main():
 
     ax = fig.add_subplot(111, projection='3d')
     ax.set_facecolor('black')
+    ax.grid(False)
 
     bounds = np.array([[-2.5, 2.5], [-4.0, 2.0], [-2.0, 2.0]])
 
@@ -155,12 +156,16 @@ def main():
     ax.set_ylim(bounds[1])
     ax.set_zlim(bounds[2])
     for axis in [ax.xaxis, ax.yaxis, ax.zaxis]:
-        axis.label.set_color('white')
+        axis.set_pane_color((0, 0, 0, 0))
+        axis.line.set_color((0, 0, 0, 0))
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_zlabel('')
+    for axis in [ax.xaxis, ax.yaxis, ax.zaxis]:
         axis.set_tick_params(colors='white')
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
     ax.set_title('Ray paths through a Gaussian refractive-index bump', color='white')
     plt.show()
 
