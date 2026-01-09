@@ -6,6 +6,31 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
 
+def _normalize(vec):
+    vec = np.asarray(vec, dtype=float)
+    norm = np.linalg.norm(vec)
+    if norm == 0:
+        return np.array([0.0, 1.0, 0.0])
+    return vec / norm
+
+
+def _orthonormal_basis(axis):
+    axis = _normalize(axis)
+    if abs(axis[0]) < 0.9:
+        helper = np.array([1.0, 0.0, 0.0])
+    else:
+        helper = np.array([0.0, 1.0, 0.0])
+    u = np.cross(axis, helper)
+    u_norm = np.linalg.norm(u)
+    if u_norm == 0:
+        helper = np.array([0.0, 0.0, 1.0])
+        u = np.cross(axis, helper)
+        u_norm = np.linalg.norm(u)
+    u /= u_norm
+    v = np.cross(axis, u)
+    return axis, u, v
+
+
 def main():
     fig = plt.figure(figsize=(12, 8))
     fig.patch.set_facecolor('black')
@@ -41,7 +66,8 @@ def main():
             ),
         )
 
-    # Slider layout: 4 rows x 5 columns spanning the bottom of the figure.
+    # Slider layout: 5 rows x 5 columns spanning the bottom of the figure.
+    ray_mode_names = ["Grid", "Cone", "Sphere"]
     slider_specs = [
         {"name": "n0", "label": "n0", "min": 0.8, "max": 2.0, "init": 1.0},
         {"name": "amplitude", "label": "Gaussian A", "min": -30.0, "max": 30.0, "init": -20.0},
@@ -56,7 +82,11 @@ def main():
         {"name": "dir_x", "label": "Dir X", "min": -2.0, "max": 2.0, "init": 0.0},
         {"name": "dir_y", "label": "Dir Y", "min": 0.2, "max": 3.0, "init": 1.0},
         {"name": "dir_z", "label": "Dir Z", "min": -2.0, "max": 2.0, "init": 2.0},
-        {"name": "origin_y", "label": "Origin Y", "min": -4.0, "max": 0.0, "init": -3.0},
+        {"name": "ray_mode", "label": "Ray Mode", "min": 0, "max": 2, "init": 0, "step": 1},
+        {"name": "cone_angle", "label": "Cone Angle", "min": 5.0, "max": 90.0, "init": 25.0},
+        {"name": "origin_x", "label": "Origin X", "min": -2.5, "max": 2.5, "init": 0.0},
+        {"name": "origin_y", "label": "Origin Y", "min": -4.0, "max": 2.0, "init": -3.0},
+        {"name": "origin_z", "label": "Origin Z", "min": -2.0, "max": 2.0, "init": 0.0},
         {"name": "x_span", "label": "X Span", "min": 0.5, "max": 3.0, "init": 1.5},
         {"name": "z_span", "label": "Z Span", "min": 0.5, "max": 2.5, "init": 1.0},
         {"name": "x_count", "label": "# X Rays", "min": 2, "max": 9, "init": 5, "step": 1},
@@ -121,36 +151,65 @@ def main():
             line.remove()
         ray_lines.clear()
 
-        xs = np.linspace(-sliders["x_span"].val, sliders["x_span"].val, int(sliders["x_count"].val))
-        zs = np.linspace(-sliders["z_span"].val, sliders["z_span"].val, int(sliders["z_count"].val))
-        origin_y = sliders["origin_y"].val
+        x_span = sliders["x_span"].val
+        z_span = sliders["z_span"].val
+        x_count = int(sliders["x_count"].val)
+        z_count = int(sliders["z_count"].val)
+        origin = np.array([sliders["origin_x"].val, sliders["origin_y"].val, sliders["origin_z"].val])
         direction = np.array([sliders["dir_x"].val, sliders["dir_y"].val, sliders["dir_z"].val])
         sensor_y = sliders["sensor_y"].val
+        ray_mode = ray_mode_names[int(sliders["ray_mode"].val)]
+        sliders["ray_mode"].valtext.set_text(ray_mode)
+
+        def ray_pairs():
+            if ray_mode == "Grid":
+                xs = np.linspace(-x_span, x_span, x_count) + origin[0]
+                zs = np.linspace(-z_span, z_span, z_count) + origin[2]
+                for x in xs:
+                    for z in zs:
+                        yield np.array([x, origin[1], z]), direction
+                return
+
+            if ray_mode == "Cone":
+                theta_max = np.deg2rad(sliders["cone_angle"].val)
+            else:
+                theta_max = np.pi
+
+            axis, u, v = _orthonormal_basis(direction)
+            thetas = np.linspace(0.0, theta_max, z_count)
+            phis = np.linspace(0.0, 2.0 * np.pi, x_count, endpoint=False)
+            for theta in thetas:
+                sin_t = np.sin(theta)
+                cos_t = np.cos(theta)
+                for phi in phis:
+                    dir_vec = cos_t * axis + sin_t * (np.cos(phi) * u + np.sin(phi) * v)
+                    yield origin, dir_vec
+
+        ax.set_title(
+            f"Ray paths through a Gaussian refractive-index bump (mode: {ray_mode})",
+            color='white',
+        )
 
         def sensor_plane(pos):
             return pos[1] >= sensor_y
 
-        for x in xs:
-            for z in zs:
-                traj = integrate_ray(
-                    np.array([x, origin_y, z]),
-                    direction,
-                    new_field,
-                    ds=sliders["ds"].val,
-                    steps=int(sliders["steps"].val),
-                    adaptive=True,
-                    domain_bounds=bounds,
-                    surfaces=[sensor_plane],
-                )
-                line, = ax.plot(traj[:, 0], traj[:, 1], traj[:, 2], linewidth=0.9, color='snow')
-                ray_lines.append(line)
+        for ray_origin, ray_dir in ray_pairs():
+            traj = integrate_ray(
+                ray_origin,
+                ray_dir,
+                new_field,
+                ds=sliders["ds"].val,
+                steps=int(sliders["steps"].val),
+                adaptive=True,
+                domain_bounds=bounds,
+                surfaces=[sensor_plane],
+            )
+            line, = ax.plot(traj[:, 0], traj[:, 1], traj[:, 2], linewidth=0.9, color='snow')
+            ray_lines.append(line)
         fig.canvas.draw_idle()
 
     for s in sliders.values():
         s.on_changed(update_scene)
-
-    # Initial draw
-    update_scene()
 
     ax.set_xlim(bounds[0])
     ax.set_ylim(bounds[1])
@@ -166,7 +225,9 @@ def main():
     ax.set_zlabel('')
     for axis in [ax.xaxis, ax.yaxis, ax.zaxis]:
         axis.set_tick_params(colors='white')
-    ax.set_title('Ray paths through a Gaussian refractive-index bump', color='white')
+
+    # Initial draw
+    update_scene()
     plt.show()
 
 
