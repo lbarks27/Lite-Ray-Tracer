@@ -1,4 +1,5 @@
 """Interactive demo: tweak a refractive-index field and ray parameters live."""
+import time
 import numpy as np
 from raytracer.refractive_index import RefractiveIndexField
 from raytracer.ray import integrate_ray
@@ -66,7 +67,7 @@ def main():
             ),
         )
 
-    # Slider layout: 5 rows x 5 columns spanning the bottom of the figure.
+    # Slider layout: 6 rows x 5 columns spanning the bottom of the figure.
     ray_mode_names = ["Grid", "Cone", "Sphere"]
     slider_specs = [
         {"name": "n0", "label": "n0", "min": 0.8, "max": 2.0, "init": 1.0},
@@ -87,6 +88,9 @@ def main():
         {"name": "origin_x", "label": "Origin X", "min": -2.5, "max": 2.5, "init": 0.0},
         {"name": "origin_y", "label": "Origin Y", "min": -4.0, "max": 2.0, "init": -3.0},
         {"name": "origin_z", "label": "Origin Z", "min": -2.0, "max": 2.0, "init": 0.0},
+        {"name": "origin_move", "label": "Origin Move", "min": 0, "max": 1, "init": 0, "step": 1},
+        {"name": "move_radius", "label": "Move Radius", "min": 0.0, "max": 2.0, "init": 0.6},
+        {"name": "move_rate", "label": "Move Hz", "min": 0.0, "max": 1.0, "init": 0.2},
         {"name": "x_span", "label": "X Span", "min": 0.5, "max": 3.0, "init": 1.5},
         {"name": "z_span", "label": "Z Span", "min": 0.5, "max": 2.5, "init": 1.0},
         {"name": "x_count", "label": "# X Rays", "min": 2, "max": 9, "init": 5, "step": 1},
@@ -137,6 +141,16 @@ def main():
     cbar.ax.tick_params(colors='white')
     cbar.set_label('Refractive index', color='white')
     ray_lines = []
+    start_time = time.perf_counter()
+
+    def animated_origin(base_origin, moving):
+        if not moving:
+            return base_origin
+        radius = sliders["move_radius"].val
+        rate = sliders["move_rate"].val
+        phase = 2.0 * np.pi * rate * (time.perf_counter() - start_time)
+        offset = np.array([radius * np.cos(phase), 0.0, radius * np.sin(phase)])
+        return base_origin + offset
 
     def update_scene(_=None):
         # Update field and scatter colors
@@ -155,11 +169,14 @@ def main():
         z_span = sliders["z_span"].val
         x_count = int(sliders["x_count"].val)
         z_count = int(sliders["z_count"].val)
-        origin = np.array([sliders["origin_x"].val, sliders["origin_y"].val, sliders["origin_z"].val])
+        base_origin = np.array([sliders["origin_x"].val, sliders["origin_y"].val, sliders["origin_z"].val])
         direction = np.array([sliders["dir_x"].val, sliders["dir_y"].val, sliders["dir_z"].val])
         sensor_y = sliders["sensor_y"].val
         ray_mode = ray_mode_names[int(sliders["ray_mode"].val)]
+        origin_move = int(sliders["origin_move"].val)
+        origin = animated_origin(base_origin, origin_move)
         sliders["ray_mode"].valtext.set_text(ray_mode)
+        sliders["origin_move"].valtext.set_text("On" if origin_move else "Off")
 
         def ray_pairs():
             if ray_mode == "Grid":
@@ -210,6 +227,15 @@ def main():
 
     for s in sliders.values():
         s.on_changed(update_scene)
+
+    def animation_tick():
+        if int(sliders["origin_move"].val) == 0:
+            return
+        update_scene()
+
+    timer = fig.canvas.new_timer(interval=120)
+    timer.add_callback(animation_tick)
+    timer.start()
 
     ax.set_xlim(bounds[0])
     ax.set_ylim(bounds[1])
