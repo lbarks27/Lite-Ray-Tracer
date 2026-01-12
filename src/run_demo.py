@@ -6,14 +6,12 @@ from raytracer.ray import integrate_ray
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
-
-def _normalize(vec):
-    vec = np.asarray(vec, dtype=float)
-    norm = np.linalg.norm(vec)
-    if norm == 0:
-        return np.array([0.0, 1.0, 0.0])
-    return vec / norm
-
+def _normalize(v):
+    v = np.asarray(v, dtype=float)
+    n = np.linalg.norm(v)
+    if n == 0:
+        raise ValueError("zero-length vector")
+    return v / n
 
 def _orthonormal_basis(axis):
     axis = _normalize(axis)
