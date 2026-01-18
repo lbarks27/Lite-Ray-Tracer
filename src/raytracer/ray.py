@@ -9,7 +9,7 @@ def _normalize(v):
     return v / n
 
 
-def integrate_ray(
+def ray(
     r0,
     dir0,
     field,

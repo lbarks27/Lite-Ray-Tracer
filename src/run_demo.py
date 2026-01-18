@@ -2,7 +2,7 @@
 import time
 import numpy as np
 from raytracer.refractive_index import RefractiveIndexField
-from raytracer.ray import integrate_ray
+from raytracer.ray import ray
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
@@ -209,7 +209,7 @@ def main():
             return pos[1] >= sensor_y
 
         for ray_origin, ray_dir in ray_pairs():
-            traj = integrate_ray(
+            traj = ray(
                 ray_origin,
                 ray_dir,
                 new_field,
